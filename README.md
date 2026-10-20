@@ -31,6 +31,10 @@ python -m unittest discover -s tests -v
 
 The suite has 11 bounded unit tests. Passing them establishes the operation of these primitives, not calibrated intelligence in an independent agent.
 
+## Adaptive feedback (experimental)
+
+`humility.adaptation.OnlineCalibrator` uses observed outcomes to revise subsequent binary confidence estimates. The tests demonstrate both a reduction in Brier loss under persistent miscalibration **and an increase in loss after a distribution shift**. This is a standard supervised calibration monitor, not independent evidence authentication or a complete implementation of epistemic humility. See the local [adaptive calibration protocol](research/ADAPTIVE_FEEDBACK.md).
+
 ## Research direction
 
 Measure accuracy and calibration on withheld outcomes; investigate when evidence should change confidence, when abstention is appropriate, and when nominally separate reports are actually dependent. Compare against frozen, randomized, always-confident, always-uncertain, and always-abstaining controls. Preserve contradictory evidence and negative results.
