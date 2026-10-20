@@ -45,6 +45,10 @@ Potential consumers include calibration research, independent evaluation harness
 
 An adopter must supply and validate its own outcomes, evidence provenance, and operational safeguards. Using the library does not by itself establish trustworthy evidence, autonomous learning, qualified deployment, or authorization for external actions.
 
+## Committed prediction experiments
+
+The additive [commit-before-evaluate protocol](research/COMMITMENT_PROTOCOL.md) serializes a typed prediction commitment by challenge, case, confidence, answer/abstention, and evidence reference. Scoring rejects mutated predictions against a previously retained digest. This is **consistency checking**, not trusted timestamping, independently held labels, or proof of cognition.
+
 ## Research references
 
 - Guo et al. (2017), [On Calibration of Modern Neural Networks](https://proceedings.mlr.press/v70/guo17a.html).
