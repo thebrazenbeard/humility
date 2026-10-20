@@ -37,6 +37,14 @@ Measure accuracy and calibration on withheld outcomes; investigate when evidence
 
 See the local [experimental protocol](research/PROTOCOL.md) and [evidence boundaries](research/BOUNDARIES.md).
 
+## Intended use and interoperability
+
+**Independent by design; reusable by choice.** This repository investigates epistemic humility as a general AI capability, not as a feature built exclusively for any particular assistant, organization, model, or operating system.
+
+Potential consumers include calibration research, independent evaluation harnesses, tool-using agents, decision-support systems, and Vera projects. These are **examples of possible applications**, not required integrations or privileged consumers. No external project is required to run this code.
+
+An adopter must supply and validate its own outcomes, evidence provenance, and operational safeguards. Using the library does not by itself establish trustworthy evidence, autonomous learning, qualified deployment, or authorization for external actions.
+
 ## Research references
 
 - Guo et al. (2017), [On Calibration of Modern Neural Networks](https://proceedings.mlr.press/v70/guo17a.html).
