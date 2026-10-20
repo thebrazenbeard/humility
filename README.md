@@ -53,6 +53,10 @@ An adopter must supply and validate its own outcomes, evidence provenance, and o
 
 The additive [commit-before-evaluate protocol](research/COMMITMENT_PROTOCOL.md) serializes a typed prediction commitment by challenge, case, confidence, answer/abstention, and evidence reference. Scoring rejects mutated predictions against a previously retained digest. This is **consistency checking**, not trusted timestamping, independently held labels, or proof of cognition.
 
+## Separate-process prequential experiment
+
+The [test-then-update process protocol](research/PREQUENTIAL_PROCESS_PROTOCOL.md) evaluates forecasts before revealing each case's outcome to a separate learner process. It reports phase-specific raw/adjusted Brier and distribution-shift regressions. The process split is observable, **not an independently secure label custody guarantee**.
+
 ## Research references
 
 - Guo et al. (2017), [On Calibration of Modern Neural Networks](https://proceedings.mlr.press/v70/guo17a.html).
