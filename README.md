@@ -1,17 +1,45 @@
 # humility
 
-**Epistemic humility for AI:** evidence-sensitive belief revision, calibrated confidence, truthful uncertainty and defensible abstention.
+**Epistemic humility for AI:** evidence-sensitive belief revision, calibrated confidence, truthful uncertainty, and defensible abstention.
 
-**Status:** early research with executable measurement primitives. This is not an autonomous learner, trained model, independent outcome evaluator, or deployed Vera runtime.
+**Status:** standalone early-stage research with executable measurement primitives. This is not an autonomous learner, a trained model, or an independently qualified outcome evaluator.
 
-`humility.core` provides frozen predictions and evidence IDs, binary Brier scoring, selective risk, coverage, cost-sensitive decision loss, an explicit Bayesian revision primitive, and a conservative provenance-aware update that rejects repeated evidence identities and repeated source-dependence groups. It does not authenticate evidence sources or judge the truth of supplied likelihoods. Outcomes must be controlled by a separate evaluator for meaningful independent evidence.
+## Purpose
 
-Run `python -m unittest discover -s tests -v` (Python 3.11+). The suite currently contains **11 bounded tests**, not independent model qualification.
+Investigate a foundational cognitive commitment: **claims and reasoning methods should remain open to correction in proportion to reliable evidence**.
 
-The proposed foundational law is that *claims and cognitive methods remain open to revision in proportion to reliable contradictory evidence*. This does not imply permanent doubt or reflexive abstention. Measurable humility means justified confidence, correction when indicated, resistance to contaminated evidence, and accountable claims.
+Humility is not blanket doubt, frequent disclaimers, or refusing to decide. It requires justified confidence when evidence is strong, honest recognition of unknowns, sensitivity to contradictory evidence, and correction when warranted.
 
-The additional `EvidenceItem` / `revise_distinct` interface refuses to count two reports from the same declared dependency group as independent updates. **The caller supplies those groups and likelihoods**—this prevents some accidental double-counting but does not establish authenticity, independence, or accurate Bayesian likelihoods. It is not a trust service.
+## What is implemented
 
-See [research/PROTOCOL.md](research/PROTOCOL.md) for competing controls, falsification, and qualification boundaries. Related but independent: [meta](https://github.com/thebrazenbeard/meta), which studies improved **methods of inquiry**, not just confidence in outcomes. [Vera Mono PR #74](https://github.com/thebrazenbeard/vera-mono/pull/74) proposes endogenous learning studies; its existence does not establish such capability.
+The standard-library-only `humility.core` provides:
 
-Research influences: [Guo et al. (2017)](https://proceedings.mlr.press/v70/guo17a.html) on calibration and [Hendrycks & Gimpel (2017)](https://arxiv.org/abs/1610.02136) on error/OOD detection.
+- Frozen binary predictions with evidence identifiers.
+- Brier scoring, coverage, selective risk, and cost-sensitive abstention loss.
+- An explicit Bayesian belief-update primitive using supplied likelihoods.
+- `EvidenceItem` and `revise_distinct` for rejecting repeated evidence identities and repeated declared source-dependence groups.
+
+**Important limit:** the caller supplies evidence identities, dependence groups, outcomes, and likelihoods. The module does not authenticate them, independently judge truth, or establish that differently labeled sources are independent. Duplicate-group rejection is a conservative guard, not a trust service.
+
+## Run the tests
+
+Requires Python 3.11+; no third-party dependencies.
+
+```sh
+python -m unittest discover -s tests -v
+```
+
+The suite has 11 bounded unit tests. Passing them establishes the operation of these primitives, not calibrated intelligence in an independent agent.
+
+## Research direction
+
+Measure accuracy and calibration on withheld outcomes; investigate when evidence should change confidence, when abstention is appropriate, and when nominally separate reports are actually dependent. Compare against frozen, randomized, always-confident, always-uncertain, and always-abstaining controls. Preserve contradictory evidence and negative results.
+
+See the local [experimental protocol](research/PROTOCOL.md) and [evidence boundaries](research/BOUNDARIES.md).
+
+## Research references
+
+- Guo et al. (2017), [On Calibration of Modern Neural Networks](https://proceedings.mlr.press/v70/guo17a.html).
+- Hendrycks & Gimpel (2017), [A Baseline for Detecting Misclassified and Out-of-Distribution Examples](https://arxiv.org/abs/1610.02136).
+
+This repository is an independent research implementation. Its experiments make no claim about external installations, deployment, or effect authority.
