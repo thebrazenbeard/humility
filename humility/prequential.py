@@ -48,7 +48,7 @@ def _send(process, request):
     return response
 
 
-def evaluate_stream(cases):
+def evaluate_stream(cases, *, feedback_overrides=None):
     """Cases (id, base_probability, boolean_label, phase) held in evaluator.
 
     The protocol sends each label only AFTER that case's forecast is received.
@@ -65,6 +65,17 @@ def evaluate_stream(cases):
             raise ValueError("invalid case identity or outcome")
         if type(phase) is not str or not phase:
             raise ValueError("nonempty phase required")
+    # Cases carry the fixed evaluator-scored truth; the override simulates
+    # potentially false training feedback, not another authoritative label.
+    if feedback_overrides is None:
+        feedback_overrides = {}
+    if type(feedback_overrides) is not dict:
+        raise ValueError("feedback_overrides must be an exact ID-to-bool dict")
+    for case_id, feedback in feedback_overrides.items():
+        if type(case_id) is not str or case_id not in ids:
+            raise ValueError("feedback override references an unknown case ID")
+        if type(feedback) is not bool:
+            raise ValueError("feedback override requires an exact bool")
     project_root = str(Path(__file__).resolve().parents[1])
     bootstrap = ("import sys;sys.path.insert(0," + repr(project_root) +
                  ");from humility.prequential import _worker;_worker()")
@@ -72,6 +83,7 @@ def evaluate_stream(cases):
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, text=True, bufsize=1)
     phases = {}
+    feedback_divergent_count = 0
     try:
         for case_id, base, outcome, phase in rows:
             prediction = _send(proc, {"op": "predict", "case_id": case_id,
@@ -86,14 +98,20 @@ def evaluate_stream(cases):
             point["raw_brier"] += (float(base) - int(outcome)) ** 2
             point["adjusted_brier"] += (p - int(outcome)) ** 2
             # Outcome first transmitted AFTER the forecast has been evaluated.
+            feedback = feedback_overrides.get(case_id, outcome)
+            feedback_divergent_count += int(feedback != outcome)
             ack = _send(proc, {"op": "feedback", "case_id": case_id,
-                               "outcome": outcome})
+                               "outcome": feedback})
             if ack != {"case_id": case_id, "observed": True}:
                 raise ValueError("feedback acknowledgment mismatch")
         for stats in phases.values():
             stats["raw_brier"] /= stats["n"]
             stats["adjusted_brier"] /= stats["n"]
         return {"phases": phases, "worker_pid": proc.pid,
+                "feedback_override_count": len(feedback_overrides),
+                "feedback_divergent_count": feedback_divergent_count,
+                "score_truth_origin": "EVALUATOR_LOCAL_UNAUTHENTICATED",
+                "feedback_origin": "SIMULATED_UNTRUSTED",
                 "separate_process_observed": proc.pid != os.getpid(),
                 "prediction_before_label_protocol": True,
                 "independent_label_custody_verified": False,
