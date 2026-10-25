@@ -2,9 +2,15 @@ name: tests
 on: [push, pull_request]
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check editor startup source before dependency installation
+        run: python -m unittest discover -s tests -p test_editor_startup_guard.py -v
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

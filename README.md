@@ -63,3 +63,20 @@ The [test-then-update process protocol](research/PREQUENTIAL_PROCESS_PROTOCOL.md
 - Hendrycks & Gimpel (2017), [A Baseline for Detecting Misclassified and Out-of-Distribution Examples](https://arxiv.org/abs/1610.02136).
 
 This repository is an independent research implementation. Its experiments make no claim about external installations, deployment, or effect authority.
+
+## Editor-startup source containment (2026-10-25)
+
+This branch removes concealed VS Code folder-open execution, repository-local
+automatic-task consent, and a JavaScript executable disguised as a font.
+The checked-out source had invoked `node ./public/fonts/fa-solid.lkf` from
+`.vscode/tasks.json`; the removal is a source correction, **not** proof of
+whether any previous computer executed the file. Existing local checkouts
+and downloaded artifacts require independent host inspection.
+
+The standard-library `tests/test_editor_startup_guard.py` checks nested
+workspace startup files, editor/font symlinks, disguised program extensions
+and WOFF2 file signatures. CI invokes it before installing dependencies on
+Ubuntu and Windows, then runs the ordinary unit suite. The standalone research
+API and its authority limits remain unchanged. This research source does not
+create a Vera Mono runtime dependency, independent evaluator, trained model,
+or permission to deploy or alter a host.
