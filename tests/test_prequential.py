@@ -1,4 +1,6 @@
 import unittest
+from math import inf, nan
+from unittest.mock import patch
 from humility.prequential import evaluate_stream
 
 
@@ -32,6 +34,23 @@ class SeparatedCalibrationTests(unittest.TestCase):
         result = evaluate_stream([("x", .6, True, "single")])
         self.assertFalse(result["independent_label_custody_verified"])
         self.assertEqual(result["phases"]["single"]["n"], 1)
+
+    def test_malformed_cases_rejected_as_validation_errors_before_launch(self):
+        invalid_batches = [
+            [()], [None], [("only",)],
+            [("x", .5, True, "a"), ("y", False, False, "b")],
+            [("x", .5, True, "a"), ("y", nan, True, "b")],
+            [("x", .5, True, "a"), ("y", inf, True, "b")],
+            [("x", .5, True, "a"), ("y", -0.1, True, "b")],
+            [("x", .5, True, "a"), ("y", 1.1, True, "b")],
+            [("x", .5, True, "a"), ("y", 10**1000, True, "b")],
+        ]
+        for cases in invalid_batches:
+            with self.subTest(cases=cases):
+                with patch("humility.prequential.subprocess.Popen") as popen:
+                    with self.assertRaises(ValueError):
+                        evaluate_stream(cases)
+                    popen.assert_not_called()
 
 
 if __name__ == "__main__":
