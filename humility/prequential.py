@@ -4,6 +4,7 @@ Protocol withholding is observed; evaluator security/label custody is NOT qualif
 This worker and evaluator share filesystem privileges and callable source.
 """
 import json
+from math import isfinite
 import os
 from pathlib import Path
 import subprocess
@@ -57,14 +58,18 @@ def evaluate_stream(cases):
     rows = tuple(cases)
     if not rows:
         raise ValueError("nonempty case sequence required")
-    ids = [r[0] for r in rows]
-    if any(len(r) != 4 for r in rows) or len(set(ids)) != len(ids):
-        raise ValueError("unique four-field cases required")
+    if any(type(r) not in (tuple, list) or len(r) != 4 for r in rows):
+        raise ValueError("four-field tuple/list cases required")
     for case_id, p, outcome, phase in rows:
         if type(case_id) is not str or not case_id or type(outcome) is not bool:
             raise ValueError("invalid case identity or outcome")
+        if type(p) not in (int, float) or not 0 <= p <= 1 or not isfinite(p):
+            raise ValueError("finite probability in [0, 1] required")
         if type(phase) is not str or not phase:
             raise ValueError("nonempty phase required")
+    ids = [r[0] for r in rows]
+    if len(set(ids)) != len(ids):
+        raise ValueError("unique case identifiers required")
     project_root = str(Path(__file__).resolve().parents[1])
     bootstrap = ("import sys;sys.path.insert(0," + repr(project_root) +
                  ");from humility.prequential import _worker;_worker()")
