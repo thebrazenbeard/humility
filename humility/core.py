@@ -81,11 +81,14 @@ class RevisionRecord:
     source_groups: tuple[str, ...]
 
 
-def revise_distinct(prior: float, items) -> RevisionRecord:
-    """Conservative update: reject repeated/correlated groups rather than double count.
+def revise_distinct(
+    prior: float, items, *, seen_evidence_ids=(), seen_source_groups=()
+) -> RevisionRecord:
+    """Reject duplicated evidence in the current batch and caller-supplied history.
 
-    Caller must independently verify actual source identity, likelihood accuracy,
-    and true group independence. This is not an evidence-authentication API.
+    Host must persist complete previously admitted evidence IDs and dependence groups
+    for the same belief revision chain. Returned IDs describe only this batch.
+    Names and likelihood accuracy are not authenticated here.
     """
     if not _unit_probability(prior):
         raise ValueError("invalid prior")
@@ -98,6 +101,21 @@ def revise_distinct(prior: float, items) -> RevisionRecord:
         raise ValueError("repeated evidence identity")
     if len(set(groups)) != len(groups):
         raise ValueError("dependent evidence source group repeated")
+    # History belongs to an independently controlled revision chain. Require
+    # typed IDs, not a string which would be interpreted character-by-character.
+    def _history(value, label):
+        if type(value) not in (tuple, list, set, frozenset):
+            raise ValueError(f"historical {label} requires an ID collection")
+        if any(type(item) is not str or not item for item in value):
+            raise ValueError(f"historical {label} identifiers must be nonempty strings")
+        return set(value)
+
+    used_ids = _history(seen_evidence_ids, "evidence")
+    used_groups = _history(seen_source_groups, "source")
+    if used_ids.intersection(ids):
+        raise ValueError("historical evidence identity repeated")
+    if used_groups.intersection(groups):
+        raise ValueError("historical source group repeated")
     posterior = prior
     for e in events:
         posterior = revise(posterior, e.likelihood_if_true,
