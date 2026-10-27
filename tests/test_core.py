@@ -52,4 +52,25 @@ class TestHumility(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one or more"):
             revise_distinct(.5, [])
 
+    def test_probability_contract_rejects_coercion_and_overflow(self):
+        for value in (True, False, "0.5", 10**1000, -10**1000, float("nan"), float("inf")):
+            with self.subTest(value=repr(value)[:30]):
+                with self.assertRaises(ValueError): Prediction("a", value, True, "e")
+                with self.assertRaises(ValueError):
+                    score([Prediction("a", .5, True, "e")], {"a": True}, abstention_cost=value)
+                with self.assertRaises(ValueError): revise(value, .5, .5, "e")
+                with self.assertRaises(ValueError): revise(.5, value, .5, "e")
+                with self.assertRaises(ValueError): EvidenceItem("e", "g", value, .5)
+                with self.assertRaises(ValueError):
+                    revise_distinct(value, [EvidenceItem("e", "g", .5, .5)])
+
+    def test_identity_contract_rejects_nonstring_identifiers(self):
+        for value in (1, True, b"e"):
+            with self.subTest(value=repr(value)):
+                with self.assertRaises(ValueError): Prediction(value, .5, True, "e")
+                with self.assertRaises(ValueError): Prediction("a", .5, True, value)
+                with self.assertRaises(ValueError): revise(.5, .5, .5, value)
+                with self.assertRaises(ValueError): EvidenceItem(value, "g", .5, .5)
+                with self.assertRaises(ValueError): EvidenceItem("e", value, .5, .5)
+
 if __name__ == '__main__': unittest.main()
