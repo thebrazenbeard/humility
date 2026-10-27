@@ -74,3 +74,23 @@ class TestHumility(unittest.TestCase):
                 with self.assertRaises(ValueError): EvidenceItem("e", value, .5, .5)
 
 if __name__ == '__main__': unittest.main()
+
+
+class TestCrossRevisionEvidenceHistory:
+    def test_rejects_replayed_evidence_and_source_groups(self):
+        from humility.core import EvidenceItem, revise_distinct
+        import pytest
+        evidence = EvidenceItem("obs-1", "source-1", 0.9, 0.1)
+        first = revise_distinct(0.5, [evidence])
+        with pytest.raises(ValueError, match="historical evidence"):
+            revise_distinct(first.posterior, [evidence], seen_evidence_ids=first.evidence_ids, seen_source_groups=first.source_groups)
+        with pytest.raises(ValueError, match="historical source"):
+            revise_distinct(first.posterior, [EvidenceItem("obs-2", "source-1", 0.8, 0.2)], seen_source_groups=first.source_groups)
+        new = revise_distinct(first.posterior, [EvidenceItem("obs-3","source-3",0.8,0.2)], seen_evidence_ids=first.evidence_ids, seen_source_groups=first.source_groups)
+        assert new.posterior > first.posterior
+
+    def test_rejects_bad_history_types_before_use(self):
+        from humility.core import EvidenceItem, revise_distinct
+        import pytest
+        with pytest.raises(ValueError, match="historical evidence"):
+            revise_distinct(0.5, [EvidenceItem("obs-1","source-1",0.9,0.1)], seen_evidence_ids="obs-1")
