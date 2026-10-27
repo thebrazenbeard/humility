@@ -3,6 +3,11 @@ from dataclasses import dataclass
 from math import isfinite
 
 
+def _unit_probability(value):
+    """Accept only explicit finite numeric probabilities, without coercion."""
+    return type(value) in (int, float) and 0 <= value <= 1 and isfinite(value)
+
+
 @dataclass(frozen=True)
 class Prediction:
     case_id: str
@@ -11,9 +16,12 @@ class Prediction:
     evidence_id: str
 
     def __post_init__(self):
-        if not self.case_id or not self.evidence_id:
-            raise ValueError("nonempty case/evidence identities required")
-        if not isfinite(self.probability_true) or not 0 <= self.probability_true <= 1:
+        if (type(self.case_id) is not str or not self.case_id
+                or type(self.evidence_id) is not str or not self.evidence_id):
+            raise ValueError("nonempty string case/evidence identities required")
+        if type(self.probability_true) not in (int, float):
+            raise ValueError("numeric confidence required")
+        if not _unit_probability(self.probability_true):
             raise ValueError("invalid probability")
         if self.decision is not None and type(self.decision) is not bool:
             raise ValueError("decision must be bool or abstention")
@@ -21,7 +29,7 @@ class Prediction:
 
 def score(predictions, outcomes, abstention_cost=0.2):
     """Outcomes MUST be evaluator-supplied after frozen predictions."""
-    if not isfinite(abstention_cost) or not 0 <= abstention_cost <= 1:
+    if not _unit_probability(abstention_cost):
         raise ValueError("invalid abstention cost")
     rows = tuple(predictions)
     ids = [p.case_id for p in rows]
@@ -39,9 +47,9 @@ def score(predictions, outcomes, abstention_cost=0.2):
 
 def revise(prior, p_evidence_if_true, p_evidence_if_false, evidence_id):
     """Explicit Bayesian evidence update; supplied likelihoods are NOT verified."""
-    if not evidence_id: raise ValueError("evidence identifier required")
+    if type(evidence_id) is not str or not evidence_id: raise ValueError("evidence identifier required")
     for p in (prior, p_evidence_if_true, p_evidence_if_false):
-        if not isfinite(p) or not 0 <= p <= 1: raise ValueError("invalid probability")
+        if not _unit_probability(p): raise ValueError("invalid probability")
     yes = prior*p_evidence_if_true
     no = (1-prior)*p_evidence_if_false
     if yes+no == 0: raise ValueError("impossible evidence")
@@ -57,10 +65,11 @@ class EvidenceItem:
     likelihood_if_false: float
 
     def __post_init__(self):
-        if not self.evidence_id or not self.source_group:
+        if (type(self.evidence_id) is not str or not self.evidence_id
+                or type(self.source_group) is not str or not self.source_group):
             raise ValueError("evidence identity and dependence group required")
         for p in (self.likelihood_if_true, self.likelihood_if_false):
-            if not isfinite(p) or not 0 <= p <= 1:
+            if not _unit_probability(p):
                 raise ValueError("invalid evidence likelihood")
 
 
@@ -78,7 +87,7 @@ def revise_distinct(prior: float, items) -> RevisionRecord:
     Caller must independently verify actual source identity, likelihood accuracy,
     and true group independence. This is not an evidence-authentication API.
     """
-    if not isfinite(prior) or not 0 <= prior <= 1:
+    if not _unit_probability(prior):
         raise ValueError("invalid prior")
     events = tuple(items)
     if not events or any(not isinstance(e, EvidenceItem) for e in events):
