@@ -32,12 +32,12 @@ def score(predictions, outcomes, abstention_cost=0.2):
     if not _unit_probability(abstention_cost):
         raise ValueError("invalid abstention cost")
     rows = tuple(predictions)
-    if any(type(p) is not Prediction for p in rows):
+    if any(not isinstance(p, Prediction) for p in rows):
         raise ValueError("typed predictions required")
-    # Frozen dataclasses can still be mutated by privileged Python callers.
-    # Recheck their construction invariants at the scoring trust boundary.
-    for p in rows:
-        Prediction.__post_init__(p)
+    # Normalize to fresh base records: preserve previously valid subclasses,
+    # reject mutated frozen instances, and score one validated snapshot.
+    rows = tuple(Prediction(p.case_id, p.probability_true, p.decision, p.evidence_id)
+                 for p in rows)
     ids = [p.case_id for p in rows]
     if not rows or len(ids) != len(set(ids)) or set(ids) != set(outcomes):
         raise ValueError("missing or duplicated cases")
