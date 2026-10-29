@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from humility.core import Prediction, score, revise, EvidenceItem, revise_distinct
 
 class TestHumility(unittest.TestCase):
@@ -19,6 +20,24 @@ class TestHumility(unittest.TestCase):
         p = Prediction('a', .5, True, 'e')
         with self.assertRaises(ValueError): score([p,p], {'a': True})
         with self.assertRaises(ValueError): score([p], {'b': True})
+    def test_scoring_rejects_forged_or_mutated_predictions(self):
+        valid = Prediction('a', .5, True, 'e')
+        class PredictionSubclass(Prediction):
+            pass
+        self.assertEqual(score([PredictionSubclass('a', .5, True, 'e')], {'a': True})['brier'], .25)
+        for confidence in (float('nan'), float('inf'), -0.1, 2.0):
+            forged = SimpleNamespace(case_id='a', probability_true=confidence,
+                                     decision=True, evidence_id='e')
+            with self.subTest(confidence=confidence):
+                with self.assertRaises(ValueError):
+                    score([forged], {'a': True})
+                object.__setattr__(valid, 'probability_true', confidence)
+                with self.assertRaises(ValueError):
+                    score([valid], {'a': True})
+        object.__setattr__(valid, 'probability_true', .5)
+        object.__setattr__(valid, 'decision', 'yes')
+        with self.assertRaises(ValueError):
+            score([valid], {'a': True})
     def test_revisions_can_reverse_confidence(self):
         self.assertAlmostEqual(revise(.5, .9, .1, 'e1'), .9)
         self.assertAlmostEqual(revise(.9, .1, .9, 'e2'), .5)
@@ -76,21 +95,17 @@ class TestHumility(unittest.TestCase):
 if __name__ == '__main__': unittest.main()
 
 
-class TestCrossRevisionEvidenceHistory:
+class TestCrossRevisionEvidenceHistory(unittest.TestCase):
     def test_rejects_replayed_evidence_and_source_groups(self):
-        from humility.core import EvidenceItem, revise_distinct
-        import pytest
         evidence = EvidenceItem("obs-1", "source-1", 0.9, 0.1)
         first = revise_distinct(0.5, [evidence])
-        with pytest.raises(ValueError, match="historical evidence"):
+        with self.assertRaisesRegex(ValueError, "historical evidence"):
             revise_distinct(first.posterior, [evidence], seen_evidence_ids=first.evidence_ids, seen_source_groups=first.source_groups)
-        with pytest.raises(ValueError, match="historical source"):
+        with self.assertRaisesRegex(ValueError, "historical source"):
             revise_distinct(first.posterior, [EvidenceItem("obs-2", "source-1", 0.8, 0.2)], seen_source_groups=first.source_groups)
         new = revise_distinct(first.posterior, [EvidenceItem("obs-3","source-3",0.8,0.2)], seen_evidence_ids=first.evidence_ids, seen_source_groups=first.source_groups)
-        assert new.posterior > first.posterior
+        self.assertGreater(new.posterior, first.posterior)
 
     def test_rejects_bad_history_types_before_use(self):
-        from humility.core import EvidenceItem, revise_distinct
-        import pytest
-        with pytest.raises(ValueError, match="historical evidence"):
+        with self.assertRaisesRegex(ValueError, "historical evidence"):
             revise_distinct(0.5, [EvidenceItem("obs-1","source-1",0.9,0.1)], seen_evidence_ids="obs-1")
