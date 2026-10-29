@@ -71,6 +71,38 @@ class TestHumility(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one or more"):
             revise_distinct(.5, [])
 
+    def test_revision_revalidates_mutated_frozen_evidence(self):
+        for field, value in (("evidence_id", 123), ("evidence_id", ""),
+                             ("source_group", 123), ("source_group", ""),
+                             ("source_group", []),
+                             ("likelihood_if_true", float("nan")),
+                             ("likelihood_if_false", float("inf")),
+                             ("likelihood_if_true", -0.1),
+                             ("likelihood_if_false", 1.1)):
+            with self.subTest(field=field, value=str(value)):
+                item = EvidenceItem("e1", "g1", .9, .1)
+                object.__setattr__(item, field, value)
+                with self.assertRaises(ValueError):
+                    revise_distinct(.5, [item])
+
+    def test_revision_uses_one_validated_subclass_snapshot(self):
+        class ChangingEvidence(EvidenceItem):
+            def __getattribute__(self, name):
+                if name == "likelihood_if_true":
+                    try:
+                        reads = object.__getattribute__(self, "_reads")
+                    except AttributeError:
+                        return object.__getattribute__(self, name)
+                    object.__setattr__(self, "_reads", reads + 1)
+                    return .9 if reads == 0 else .1
+                return object.__getattribute__(self, name)
+
+        subclass = ChangingEvidence("e1", "g1", .9, .1)
+        object.__setattr__(subclass, "_reads", 0)
+        result = revise_distinct(.5, (item for item in [subclass]))
+        self.assertAlmostEqual(result.posterior, .9)
+        self.assertEqual(object.__getattribute__(subclass, "_reads"), 1)
+
     def test_probability_contract_rejects_coercion_and_overflow(self):
         for value in (True, False, "0.5", 10**1000, -10**1000, float("nan"), float("inf")):
             with self.subTest(value=repr(value)[:30]):

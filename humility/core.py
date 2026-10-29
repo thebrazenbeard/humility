@@ -101,6 +101,12 @@ def revise_distinct(
     events = tuple(items)
     if not events or any(not isinstance(e, EvidenceItem) for e in events):
         raise ValueError("one or more typed evidence items required")
+    # A frozen dataclass can still be changed by privileged in-process callers.
+    # Revalidate and use one base-record snapshot for identities and likelihoods,
+    # including valid subclasses, rather than trusting construction-time checks.
+    events = tuple(EvidenceItem(e.evidence_id, e.source_group,
+                                e.likelihood_if_true, e.likelihood_if_false)
+                   for e in events)
     ids = [e.evidence_id for e in events]
     groups = [e.source_group for e in events]
     if len(set(ids)) != len(ids):
