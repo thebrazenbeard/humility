@@ -22,6 +22,9 @@ class TestHumility(unittest.TestCase):
         with self.assertRaises(ValueError): score([p], {'b': True})
     def test_scoring_rejects_forged_or_mutated_predictions(self):
         valid = Prediction('a', .5, True, 'e')
+        class PredictionSubclass(Prediction):
+            pass
+        self.assertEqual(score([PredictionSubclass('a', .5, True, 'e')], {'a': True})['brier'], .25)
         for confidence in (float('nan'), float('inf'), -0.1, 2.0):
             forged = SimpleNamespace(case_id='a', probability_true=confidence,
                                      decision=True, evidence_id='e')
