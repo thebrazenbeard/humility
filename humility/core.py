@@ -32,6 +32,12 @@ def score(predictions, outcomes, abstention_cost=0.2):
     if not _unit_probability(abstention_cost):
         raise ValueError("invalid abstention cost")
     rows = tuple(predictions)
+    if any(type(p) is not Prediction for p in rows):
+        raise ValueError("typed predictions required")
+    # Frozen dataclasses can still be mutated by privileged Python callers.
+    # Recheck their construction invariants at the scoring trust boundary.
+    for p in rows:
+        Prediction.__post_init__(p)
     ids = [p.case_id for p in rows]
     if not rows or len(ids) != len(set(ids)) or set(ids) != set(outcomes):
         raise ValueError("missing or duplicated cases")
