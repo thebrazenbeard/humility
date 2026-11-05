@@ -43,6 +43,24 @@ class AdaptiveCalibrationTests(unittest.TestCase):
         with self.assertRaises(ValueError): monitor.observe("a", False)
         with self.assertRaises(ValueError): monitor.forecast("a", .6)
 
+    def test_returned_forecast_cannot_rewrite_pending_evaluation(self):
+        monitor = OnlineCalibrator(prior_weight=2)
+        returned = monitor.forecast("a", .8)
+        # Frozen dataclasses are not tamper-proof in Python.
+        object.__setattr__(returned, "adjusted_probability", 0.0)
+        object.__setattr__(returned, "bucket", 0)
+        result = monitor.observe("a", True)
+        self.assertAlmostEqual(result["adjusted_brier"], .04)
+        following = monitor.forecast("b", .8)
+        self.assertEqual(following.prior_observations, 1)
+
+    def test_returned_feedback_cannot_rewrite_stored_receipt(self):
+        monitor = OnlineCalibrator()
+        monitor.forecast("a", .6)
+        returned = monitor.observe("a", False)
+        returned["raw_brier"] = -10
+        self.assertAlmostEqual(monitor.receipts[0]["raw_brier"], .36)
+
     def test_bad_configuration_rejected(self):
         for kwargs in ({"bins": 1}, {"window": 0}, {"prior_weight": 0},
                        {"prior_weight": float("nan")}):
