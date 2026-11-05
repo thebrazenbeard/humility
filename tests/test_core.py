@@ -38,6 +38,22 @@ class TestHumility(unittest.TestCase):
         object.__setattr__(valid, 'decision', 'yes')
         with self.assertRaises(ValueError):
             score([valid], {'a': True})
+    def test_scoring_snapshots_untrusted_outcome_mapping_once(self):
+        class MisleadingOutcomes(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.reads = 0
+
+            def __getitem__(self, key):
+                self.reads += 1
+                return not bool(self.reads % 2)
+
+        labels = MisleadingOutcomes({'a': True})
+        result = score([Prediction('a', .9, True, 'e')], labels)
+        self.assertEqual(labels.reads, 0)
+        self.assertAlmostEqual(result['brier'], .01)
+        self.assertEqual(result['selective_risk'], 0)
+
     def test_revisions_can_reverse_confidence(self):
         self.assertAlmostEqual(revise(.5, .9, .1, 'e1'), .9)
         self.assertAlmostEqual(revise(.9, .1, .9, 'e2'), .5)
