@@ -21,15 +21,75 @@ The standard-library-only `humility.core` provides:
 
 **Important limit:** the caller supplies evidence identities, dependence groups, outcomes, and likelihoods. The module does not authenticate them, independently judge truth, or establish that differently labeled sources are independent. Duplicate-group rejection is a conservative guard, not a trust service.
 
+### Structured claim assessment (optional research API)
+
+`humility.runtime` adds a source-bound **claim-level** assessment seam: explicit
+`Claim` records, typed `EvidenceReceipt` declarations, evidence-class matching,
+contradiction-aware `assess_claim`, `revise_claim` correction receipts, and an
+optional `render_checked_claim` output boundary. Unlike probabilistic calibration,
+this deterministic classification does **not** estimate a model's actual
+truthfulness or check whether a receipt came from the claimed issuer.
+
+For example, a host can evaluate a claim against an exact revision and retain
+the evidence when later observations contradict it:
+
+```python
+from humility.runtime import (
+    Claim, EvidenceClass, EvidenceOutcome, EvidenceReceipt,
+    assess_claim, claim_fingerprint, render_checked_claim, revise_claim,
+)
+
+claim = Claim(
+    "case-1", "repository@example-commit", "A real host is running the service",
+    (EvidenceClass.REAL_SYSTEM_PROBE,),
+)
+digest = claim_fingerprint(claim)
+source_only = EvidenceReceipt(
+    "source-1", "case-1", "repository@example-commit", "source-review",
+    EvidenceClass.SOURCE_INSPECTION, EvidenceOutcome.PASS, digest,
+)
+before = assess_claim(claim, (source_only,))
+assert render_checked_claim(claim, before).startswith("UNVERIFIED")
+
+# This represents a *caller-asserted* observation, not one verified by humility.
+host_probe = EvidenceReceipt(
+    "probe-1", "case-1", "repository@example-commit", "host-probe",
+    EvidenceClass.REAL_SYSTEM_PROBE, EvidenceOutcome.PASS, digest,
+)
+later = revise_claim(before, claim, (source_only, host_probe))
+assert later.changed and render_checked_claim(claim, later.current) == claim.proposition
+```
+
+The claim fingerprint binds receipts to the complete claim as represented by
+the adapter; it does not prove who issued a receipt or that its contents are
+true. The adapter cannot discover claims a model omits or prevent a caller from
+forging receipts, groups, assessments, or outcomes. A trustworthy consumer
+must: (1) independently authenticate evidence and custody; (2) decide which
+claims require assessment; (3) invoke its output/decision gate on **every
+relevant path**; (4) retain contradiction and correction receipts outside the
+model's control; and (5) test that responses or actions genuinely change.
+The research adapter alone grants **no** memory-write, tool, install, provider,
+or protected-effect authority. It must never override a Vera Mono
+`runtime_cohesion` `UNRESOLVED` or `CONFLICT` admission decision.
+
+**Installation status:** Only this optional library's source and tests are
+provided. No Vera Mono consumer hook, trusted evidence provider, ChatGPT
+native runtime extension, or deployed assistant has been established by this
+repository. Importing or packaging this module does not alter ChatGPT's
+hosted model weights, project-memory boundaries, or off-turn behavior.
+
 ## Run the tests
 
-Requires Python 3.11+; no third-party dependencies.
+Requires Python 3.11+. The library has **zero third-party runtime dependencies**.
+Building a distribution from source requires `setuptools>=68` as build tooling;
+it is not a runtime dependency. The unit tests use Python's standard library.
 
 ```sh
 python -m unittest discover -s tests -v
 ```
 
-The suite has 11 bounded unit tests. Passing them establishes the operation of these primitives, not calibrated intelligence in an independent agent.
+Passing the bounded unit tests establishes the operation of these primitives,
+not calibrated intelligence or effective enforcement in an independent agent.
 
 ## Adaptive feedback (experimental)
 
