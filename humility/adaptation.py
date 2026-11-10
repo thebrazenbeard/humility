@@ -43,9 +43,13 @@ class OnlineCalibrator:
         adjusted = ((self.prior_weight * probability + sum(history)) /
                     (self.prior_weight + len(history)))
         record = Forecast(case_id, float(probability), adjusted, len(history), bucket)
+        # Keep an independent snapshot: callers can mutate even frozen dataclasses
+        # using object.__setattr__, which must not rewrite pending forecasts.
         self._pending[case_id] = record
         self._seen.add(case_id)
-        return record
+        return Forecast(record.case_id, record.raw_probability,
+                        record.adjusted_probability, record.prior_observations,
+                        record.bucket)
 
     def observe(self, case_id, outcome):
         if case_id not in self._pending:
@@ -57,5 +61,7 @@ class OnlineCalibrator:
                     "raw_brier": (record.raw_probability - int(outcome)) ** 2,
                     "adjusted_brier": (record.adjusted_probability - int(outcome)) ** 2,
                     "prior_observations": record.prior_observations}
-        self.receipts.append(measured)
+        # Do not let a caller edit the stored receipt through the return value.
+        # Receipts remain locally controlled research records, not signed evidence.
+        self.receipts.append(dict(measured))
         return measured
