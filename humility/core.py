@@ -1,4 +1,5 @@
 """Observable calibration, abstention, and evidence-sensitive revision."""
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
 
@@ -28,9 +29,17 @@ class Prediction:
 
 
 def score(predictions, outcomes, abstention_cost=0.2):
-    """Outcomes MUST be evaluator-supplied after frozen predictions."""
+    """Outcomes MUST be evaluator-supplied after frozen predictions.
+
+    A detached snapshot prevents stateful mappings from reporting inconsistent
+    labels across calibration, selective risk, and decision loss. It does not
+    authenticate those labels or establish evaluator independence.
+    """
     if not _unit_probability(abstention_cost):
         raise ValueError("invalid abstention cost")
+    if not isinstance(outcomes, Mapping):
+        raise ValueError("outcomes must map case IDs to booleans")
+    outcomes = dict(outcomes)
     rows = tuple(predictions)
     if any(not isinstance(p, Prediction) for p in rows):
         raise ValueError("typed predictions required")
