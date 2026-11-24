@@ -77,8 +77,9 @@ def review(utterance: str, declared_modality: str, candidates) -> BlindReaderRes
         raise ValueError('typed candidate readings required')
     # Revalidate caller-mutable instances and snapshot the exact values used.
     rows = tuple(CandidateReading(c.reading_id, c.paraphrase,
-                                   tuple(c.quoted_evidence), c.modality,
-                                   tuple(c.unstated_assumptions)) for c in proposed)
+                                   _text_tuple(c.quoted_evidence, 'quoted_evidence'), c.modality,
+                                   _text_tuple(c.unstated_assumptions, 'unstated_assumptions', allow_empty=True))
+                 for c in proposed)
     ids = tuple(c.reading_id for c in rows)
     if len(set(ids)) != len(ids):
         raise ValueError('duplicate reading_id')
