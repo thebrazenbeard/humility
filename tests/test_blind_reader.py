@@ -49,6 +49,19 @@ class BlindReaderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             review('a', 'ASSERTION', [a])
 
+    def test_mutated_sequence_fields_are_rejected_without_coercion(self):
+        # A caller can change frozen dataclass fields with object.__setattr__.
+        # Neither an evidence quote nor a source assumption may silently
+        # become one-character tokens when converted from str to tuple.
+        for field, malformed in (('quoted_evidence', 'bag'),
+                                 ('unstated_assumptions', 'maybe')):
+            reading = CandidateReading('r', 'Bag is overhead',
+                                       ('bag',), 'DESCRIPTION', ('maybe',))
+            object.__setattr__(reading, field, malformed)
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    review('bag maybe', 'DESCRIPTION', [reading])
+
     def test_rejects_invalid_types_and_vacuous_text(self):
         for t in ('', ' ', 42):
             with self.assertRaises(ValueError):
